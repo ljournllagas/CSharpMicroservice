@@ -1,0 +1,95 @@
+version: '3'
+services:
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+      - "5671:5671"
+    environment:
+      - RABBITMQ_DEFAULT_USER=rabbitmquser
+      - RABBITMQ_DEFAULT_PASS=DEBmbwkSrzy9D1T9cJfa
+      
+  sqlserver:
+    image: microsoft/mssql-server-linux:latest
+    container_name: sqlserver
+    volumes:
+      - sqlserverdata:/var/opt/mssql 
+    ports:
+      - "1434:1433"
+    environment:
+      - ACCEPT_EULA=Y 
+      - MSSQL_PID=Developer
+      - SA_PASSWORD=8jkGh47hnDw89Haq8LN2
+
+  logserver:
+    image: datalust/seq:latest
+    container_name: logserver
+    ports:
+      - "5341:80"
+    environment:
+      - ACCEPT_EULA=Y 
+
+  bankapi:
+    build: 
+      context: .
+      dockerfile: ./BankAPI/Dockerfile
+    depends_on:
+      - rabbitmq
+      - sqlserver
+    ports:
+      - "5100:5100"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+
+  clientapi:
+    build: 
+      context: .
+      dockerfile: ./ClientAPI/Dockerfile
+    depends_on:
+      - rabbitmq
+      - sqlserver
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+
+  auditlogservice:
+    build: 
+      context: .
+      dockerfile: ./AuditLogService/Dockerfile
+    container_name: auditlogservice
+    depends_on:
+      - rabbitmq
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+  
+  bankservice:
+    build: 
+      context: .
+      dockerfile: ./BankService/Dockerfile
+    container_name: bankservice
+    depends_on:
+      - rabbitmq
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+
+  clientservice:
+    build: 
+      context: .
+      dockerfile: ./ClientService/Dockerfile
+    container_name: clientservice
+    depends_on:
+      - rabbitmq
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+
+volumes:
+  sqlserverdata:
+    external: true    
+  rabbitmqdata:
+    external: true
